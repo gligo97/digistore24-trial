@@ -8,12 +8,19 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 class MessageRepositoryTest extends KernelTestCase
 {
-    public function test_it_has_connection(): void
+    private MessageRepository $messageRepository;
+
+    protected function setUp(): void
     {
         self::bootKernel();
-        
-        $messages = self::getContainer()->get(MessageRepository::class);
-        
-        $this->assertSame([], $messages->findAll());
+
+        /** @var  MessageRepository $repository */
+        $repository              = self::getContainer()->get(MessageRepository::class);
+        $this->messageRepository = $repository;
+    }
+
+    public function testFindAllReturnsEmptyArray(): void
+    {
+        $this->assertSame([], $this->messageRepository->findAll());
     }
 }

@@ -6,8 +6,19 @@ namespace App\Message;
 class SendMessage
 {
     public function __construct(
-        public string $text,
-    )
+        private string $text,
+    ) {
+    }
+
+    public function getText(): string
     {
+        return $this->text;
+    }
+
+    public function setText(string $text): self
+    {
+        $this->text = $text;
+
+        return $this;
     }
 }

@@ -16,12 +16,11 @@ class AppFixtures extends Fixture
         $faker = Factory::create();
         
         foreach (range(1, 10) as $i) {
-            $message = new Message();
-            $message->setUuid(Uuid::v6()->toRfc4122());
-            $message->setText($faker->sentence);
-            $message->setStatus(random(['sent', 'read']));
-            $message->setCreatedAt(new \DateTime());
-            
+            $message = (new Message())
+                ->setUuid(Uuid::v6()->toRfc4122())
+                ->setText($faker->sentence)
+                ->setStatus(random(['sent', 'read']));
+
             $manager->persist($message);
         }
 

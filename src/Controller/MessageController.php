@@ -4,54 +4,68 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Message\SendMessage;
-use App\Repository\MessageRepository;
+use App\Service\MessageService;
 use Controller\MessageControllerTest;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Throwable;
 
 /**
  * @see MessageControllerTest
- * TODO: review both methods and also the `openapi.yaml` specification
- *       Add Comments for your Code-Review, so that the developer can understand why changes are needed.
+ *
+ * For method list() I'd relocate the logic into a Service class where the data will be processed.
+ * Also, Enum class could be created for status
+ * Keep the controller light as possible, treat the Service class as the brain
+ *
+ * For method send() I'd put dispatching into a try catch block and throw an error if it fails
+ *
  */
 class MessageController extends AbstractController
 {
-    /**
-     * TODO: cover this method with tests, and refactor the code (including other files that need to be refactored)
-     */
-    #[Route('/messages')]
-    public function list(Request $request, MessageRepository $messages): Response
+    public function __construct(
+        private readonly MessageService $messageService,
+        private readonly MessageBusInterface $bus
+    ) {
+    }
+
+    #[Route('/messages', methods: ['GET'])]
+    public function list(Request $request): Response
     {
-        $messages = $messages->by($request);
-  
-        foreach ($messages as $key=>$message) {
-            $messages[$key] = [
-                'uuid' => $message->getUuid(),
-                'text' => $message->getText(),
-                'status' => $message->getStatus(),
-            ];
+        $allowedStatuses = ['sent', 'read'];
+
+        $status = $request->query->get('status');
+        $status = is_scalar($status) ? (string)$status : null;
+
+        if ($status !== null && !in_array($status, $allowedStatuses, true)) {
+            return $this->json(
+                ['error' => 'Invalid status. Allowed values: sent, read.'],
+                Response::HTTP_BAD_REQUEST
+            );
         }
-        
-        return new Response(json_encode([
-            'messages' => $messages,
-        ], JSON_THROW_ON_ERROR), headers: ['Content-Type' => 'application/json']);
+
+        $messages = $this->messageService->processMessages($status);
+
+        return $this->json(['messages' => $messages], headers: ['Content-Type' => 'application/json']);
     }
 
     #[Route('/messages/send', methods: ['GET'])]
-    public function send(Request $request, MessageBusInterface $bus): Response
+    public function send(Request $request): Response
     {
         $text = $request->query->get('text');
-        
-        if (!$text) {
-            return new Response('Text is required', 400);
+
+        if (!is_scalar($text) || trim((string)$text) === '') {
+            return new Response('Text is required', Response::HTTP_BAD_REQUEST);
         }
 
-        $bus->dispatch(new SendMessage($text));
-        
-        return new Response('Successfully sent', 204);
+        try {
+            $this->bus->dispatch(new SendMessage((string)$text));
+        } catch (Throwable) {
+            return new Response('Internal Server Error', Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        return new Response(null, Response::HTTP_NO_CONTENT);
     }
 }

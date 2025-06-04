@@ -3,14 +3,16 @@
 namespace App\Entity;
 
 use App\Repository\MessageRepository;
-use DateTime;
+use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: MessageRepository::class)]
 /**
- * TODO: Review Message class
+ * Assuming that class Message won't be extended, I'd suggest using ': self' instead of ': static' in setters
+ * I'd also change $createdAt to be DateTimeImmutable, and set it right away when instantiating Message
  */
+#[ORM\Table(name: 'message')]
+#[ORM\Entity(repositoryClass: MessageRepository::class)]
 class Message
 {
     #[ORM\Id]
@@ -18,17 +20,22 @@ class Message
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(type: Types::GUID)]
+    #[ORM\Column(type: Types::GUID, nullable: true)]
     private ?string $uuid = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $text = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $status = null;
-    
-    #[ORM\Column(type: 'datetime')]
-    private DateTime $createdAt;
+
+    #[ORM\Column(type: Types::DATE_IMMUTABLE)]
+    private DateTimeImmutable $createdAt;
+
+    public function __construct()
+    {
+        $this->createdAt = new DateTimeImmutable();
+    }
 
     public function getId(): ?int
     {
@@ -40,7 +47,7 @@ class Message
         return $this->uuid;
     }
 
-    public function setUuid(string $uuid): static
+    public function setUuid(string $uuid): self
     {
         $this->uuid = $uuid;
 
@@ -52,7 +59,7 @@ class Message
         return $this->text;
     }
 
-    public function setText(string $text): static
+    public function setText(string $text): self
     {
         $this->text = $text;
 
@@ -64,22 +71,22 @@ class Message
         return $this->status;
     }
 
-    public function setStatus(string $status): static
+    public function setStatus(string $status): self
     {
         $this->status = $status;
 
         return $this;
     }
 
-    public function getCreatedAt(): DateTime
+    public function getCreatedAt(): DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(DateTime $createdAt): static
+    public function setCreatedAt(DateTimeImmutable $createdAt): self
     {
         $this->createdAt = $createdAt;
-        
+
         return $this;
     }
 }
